@@ -3,615 +3,528 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>川麻听牌计算器（基础+血流红中版）</title>
+    <title>川麻听牌 · 计算+练习 v20260413.1505</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background-color: #f5f5f5;
-            font-family: "Microsoft YaHei", sans-serif;
-            padding: 15px;
-        }
-        .container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            font-size: 20px;
-            margin-bottom: 15px;
-            color: #333;
-        }
-        /* 新增：增强模式开关区 */
-        .enhance-mode {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: #f0f8ff;
-            border-radius: 8px;
-        }
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 26px;
-        }
-        .switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 26px;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 18px;
-            width: 18px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-        input:checked + .slider {
-            background-color: #e74c3c;
-        }
-        input:checked + .slider:before {
-            transform: translateX(24px);
-        }
-        .enhance-label {
-            font-size: 15px;
-            color: #333;
-            font-weight: bold;
-        }
-        /* 新增：红中/缺门设置区（默认隐藏） */
-        .hongzhong-setting {
-            display: none;
-            flex-wrap: wrap;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 15px;
-            padding: 10px;
-            background-color: #fff5f5;
-            border-radius: 8px;
-        }
-        .hongzhong-setting.show {
-            display: flex;
-        }
-        .hongzhong-num, .quemen-select {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .hongzhong-num label, .quemen-select label {
-            font-size: 14px;
-            color: #e74c3c;
-            font-weight: bold;
-        }
-        .hongzhong-num select, .quemen-select select {
-            padding: 5px;
-            border: 1px solid #e74c3c;
-            border-radius: 5px;
-            font-size: 14px;
-            color: #333;
-        }
-        /* 原有样式完全保留 */
-        .color-tabs {
-            display: flex;
-            gap: 8px;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-        .color-tab {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .tab-wan {
-            background-color: #ffe5e5;
-            color: #e74c3c;
-            border: 2px solid #e74c3c;
-        }
-        .tab-wan.active {
-            background-color: #e74c3c;
-            color: white;
-        }
-        .tab-tiao {
-            background-color: #e5ffe7;
-            color: #2ecc71;
-            border: 2px solid #2ecc71;
-        }
-        .tab-tiao.active {
-            background-color: #2ecc71;
-            color: white;
-        }
-        .tab-tong {
-            background-color: #e5f3ff;
-            color: #3498db;
-            border: 2px solid #3498db;
-        }
-        .tab-tong.active {
-            background-color: #3498db;
-            color: white;
-        }
-        .num-buttons {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 20px;
-        }
-        .num-btn {
-            padding: 12px 0;
-            border: none;
-            border-radius: 8px;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-        .num-btn:hover {
-            transform: scale(1.05);
-        }
-        .num-btn.wan {
-            color: #e74c3c;
-            background-color: #ffe5e5;
-        }
-        .num-btn.tiao {
-            color: #2ecc71;
-            background-color: #e5ffe7;
-        }
-        .num-btn.tong {
-            color: #3498db;
-            background-color: #e5f3ff;
-        }
-        .hand-cards {
-            background-color: #f9f9f9;
-            border-radius: 10px;
-            padding: 15px;
-            min-height: 100px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-        .card {
-            width: 45px;
-            height: 65px;
-            background-color: white;
-            border: 2px solid #333;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .card:hover {
-            transform: scale(1.1);
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        }
-        .card.wan {
-            color: #e74c3c;
-        }
-        .card.tiao {
-            color: #2ecc71;
-        }
-        .card.tong {
-            color: #3498db;
-        }
-        /* 新增：红中牌样式 */
-        .card.hongzhong {
-            background-color: #ffeeee;
-            color: #e74c3c;
-            border-color: #e74c3c;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            justify-content: center;
-            margin-bottom: 15px;
-        }
-        .action-btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-        .calc-btn {
-            background-color: #27ae60;
-            color: white;
-        }
-        .clear-btn {
-            background-color: #e74c3c;
-            color: white;
-        }
-        .result {
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 16px;
-            font-weight: bold;
-        }
-        .success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #f5f5f5; font-family: "Microsoft YaHei", sans-serif; padding: 15px; }
+        .container { max-width: 550px; margin: 0 auto; background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; font-size: 20px; margin-bottom: 5px; }
+        .mode-switch { display: flex; gap: 5px; justify-content: center; margin-bottom: 15px; }
+        .mode-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; background: #eee; }
+        .mode-btn.active { background: #2c3e50; color: white; }
+        .enhance-mode { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 15px; padding: 10px; background: #f0f8ff; border-radius: 8px; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #ccc; transition: .4s; border-radius: 26px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background: #e74c3c; }
+        input:checked + .slider:before { transform: translateX(24px); }
+        .hongzhong-setting { display: none; gap: 10px; justify-content: center; margin-bottom: 15px; padding: 10px; background: #fff5f5; border-radius: 8px; }
+        .hongzhong-setting.show { display: flex; }
+        .color-tabs { display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; }
+        .color-tab { padding: 10px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .tab-wan { background: #ffe5e5; color: #e74c3c; border: 2px solid #e74c3c; } .tab-wan.active { background: #e74c3c; color: white; }
+        .tab-tiao { background: #e5ffe7; color: #2ecc71; border: 2px solid #2ecc71; } .tab-tiao.active { background: #2ecc71; color: white; }
+        .tab-tong { background: #e5f3ff; color: #3498db; border: 2px solid #3498db; } .tab-tong.active { background: #3498db; color: white; }
+        .num-buttons { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-bottom: 20px; }
+        .num-btn { padding: 12px 0; border: none; border-radius: 8px; font-size: 18px; font-weight: bold; cursor: pointer; }
+        .num-btn.wan { background: #ffe5e5; color: #e74c3c; } .num-btn.tiao { background: #e5ffe7; color: #2ecc71; } .num-btn.tong { background: #e5f3ff; color: #3498db; }
+        .hand-cards { background: #f9f9f9; border-radius: 10px; padding: 15px; min-height: 100px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 15px; }
+        .card { width: 45px; height: 65px; background: white; border: 2px solid #333; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: bold; }
+        .card.wan { color: #e74c3c; } .card.tiao { color: #2ecc71; } .card.tong { color: #3498db; }
+        .card.hongzhong { background: #ffeeee; color: #e74c3c; border-color: #e74c3c; }
+        .action-buttons { display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
+                .action-btn { padding: 10px 16px; border: none; border-radius: 8px; font-size: 15px; font-weight: bold; cursor: pointer; }
+        .calc-btn { background: #27ae60; color: white; }
+        .clear-btn { background: #e67e22; color: white; }
+        .random-btn { background: #8e44ad; color: white; }
+        .answer-btn { background: #2980b9; color: white; }
+        .result { padding: 12px; border-radius: 8px; text-align: center; font-size: 15px; font-weight: bold; }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        .practice-controls { display: flex; gap: 8px; align-items: center; justify-content: center; margin-bottom: 15px; }
+        .practice-controls select { padding: 8px; border-radius: 6px; border: 1px solid #ccc; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>川麻听牌计算器</h1>
-        
-        <!-- 新增：血流红中增强模式开关 -->
-        <div class="enhance-mode">
-            <span class="enhance-label">血流红中（百搭）</span>
-            <label class="switch">
-                <input type="checkbox" id="enhanceSwitch">
-                <span class="slider"></span>
-            </label>
-        </div>
+<div class="container">
+    <h1><br>🀄 川麻听牌工具</h1>
+    <br>
+    <!-- 模式切换 -->
+    <div class="mode-switch">
+        <button class="mode-btn active" data-mode="calc">📱 计算器</button>
+        <button class="mode-btn" data-mode="practice">📚 练习模式</button>
+    </div>
 
-        <!-- 新增：红中/缺门设置区（默认隐藏） -->
-        <div class="hongzhong-setting" id="hongzhongSetting">
-            <div class="hongzhong-num">
-                <label>红中数量：</label>
-                <select id="hongzhongCount">
-                    <option value="0">0张</option>
-                    <option value="1">1张</option>
-                    <option value="2">2张</option>
-                    <option value="3">3张</option>
-                    <option value="4">4张</option>
-                </select>
-            </div>
-            <div class="quemen-select">
-                <label>缺门花色：</label>
-                <select id="quemenType">
-                    <option value="none">不缺门</option>
-                    <option value="wan">缺万</option>
-                    <option value="tiao">缺条</option>
-                    <option value="tong">缺筒</option>
-                </select>
-            </div>
-        </div>
+    <!-- 血流红中增强开关（两种模式共用） -->
+    <div class="enhance-mode">
+        <span class="enhance-label">血流红中（百搭）</span>
+        <label class="switch">
+            <input type="checkbox" id="enhanceSwitch">
+            <span class="slider"></span>
+        </label>
+    </div>
 
-        <!-- 原有花色选择区 -->
+    <!-- 红中/缺门设置 -->
+    <div class="hongzhong-setting" id="hongzhongSetting">
+        <div class="hongzhong-num">
+            <label>红中数量：</label>
+            <select id="hongzhongCount">
+                <option value="0">0张</option><option value="1">1张</option><option value="2">2张</option><option value="3">3张</option><option value="4">4张</option>
+            </select>
+        </div>
+        <div class="quemen-select">
+            <label>缺门花色：</label>
+            <select id="quemenType">
+                <option value="none">不缺门</option><option value="wan">缺万</option><option value="tiao">缺条</option><option value="tong">缺筒</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- 计算器模式专用：花色与数字选择区 -->
+    <div id="calcInputArea">
         <div class="color-tabs">
             <button class="color-tab tab-wan active" data-type="wan">万</button>
             <button class="color-tab tab-tiao" data-type="tiao">条</button>
             <button class="color-tab tab-tong" data-type="tong">筒</button>
         </div>
-
-        <!-- 原有数字选择区 -->
         <div class="num-buttons" id="numButtons">
-            <button class="num-btn wan">1</button>
-            <button class="num-btn wan">2</button>
-            <button class="num-btn wan">3</button>
-            <button class="num-btn wan">4</button>
-            <button class="num-btn wan">5</button>
-            <button class="num-btn wan">6</button>
-            <button class="num-btn wan">7</button>
-            <button class="num-btn wan">8</button>
-            <button class="num-btn wan">9</button>
+            <button class="num-btn wan">1</button><button class="num-btn wan">2</button><button class="num-btn wan">3</button>
+            <button class="num-btn wan">4</button><button class="num-btn wan">5</button><button class="num-btn wan">6</button>
+            <button class="num-btn wan">7</button><button class="num-btn wan">8</button><button class="num-btn wan">9</button>
         </div>
-
-        <!-- 原有手牌展示区 -->
-        <div class="hand-cards" id="handCards"></div>
-
-        <!-- 原有功能按钮区 -->
-        <div class="action-buttons">
-            <button class="action-btn calc-btn" id="calcBtn">算听牌</button>
-            <button class="action-btn clear-btn" id="clearBtn">清空手牌</button>
-        </div>
-
-        <!-- 原有结果提示区 -->
-        <div class="result" id="result"></div>
     </div>
 
+    <!-- 练习模式专用：控制区（初始隐藏） -->
+    <div id="practiceInputArea" class="practice-controls hidden">
+        <label>手牌张数:</label>
+        <select id="handSizeSelect">
+            <option value="1">1张</option><option value="4">4张</option><option value="7">7张</option>
+            <option value="10">10张</option><option value="13" selected>13张</option>
+        </select>
+        <button class="action-btn random-btn" id="practiceRandomBtn">🎲 随机发牌</button>
+        <button class="action-btn answer-btn" id="showAnswerBtn">🔎 显示答案</button>
+    </div>
+
+    <!-- 手牌展示区（通用） -->
+    <div class="hand-cards" id="handCards"></div>
+
+    <!-- 计算器模式操作按钮 -->
+    <div class="action-buttons" id="calcActions">
+        <button class="action-btn calc-btn" id="calcBtn">🔍 算听牌</button>
+        <button class="action-btn clear-btn" id="clearBtn">🗑️ 清空</button>
+    </div>
+
+    <!-- 练习模式操作按钮（独立） -->
+    <div class="action-buttons hidden" id="practiceActions">
+        <button class="action-btn clear-btn" id="practiceClearBtn">🔄 清空重选</button>
+    </div>
+
+    <!-- 结果展示区 -->
+    <div class="result" id="result"></div>
+</div>
+
 <script>
-// 原有全局变量
-let currentType = 'wan';
-let handCards = [];
+    (function(){
+        "use strict";
 
-// 新增：增强模式变量
-let isEnhanceMode = false; // 是否开启血流红中
-let hongzhongCount = 0;    // 红中数量
-let quemenType = 'none';   // 缺门花色
+        // ---------- 全局状态 ----------
+        let currentMode = 'calc';            // 'calc' 或 'practice'
+        let currentType = 'wan';
+        let handCards = [];                  // 普通手牌 {type, num}
+        let isEnhanceMode = false;
+        let hongzhongCount = 0;
+        let quemenType = 'none';
 
-// DOM元素（原有+新增）
-const colorTabs = document.querySelectorAll('.color-tab');
-const numButtons = document.getElementById('numButtons');
-const handCardsEl = document.getElementById('handCards');
-const calcBtn = document.getElementById('calcBtn');
-const clearBtn = document.getElementById('clearBtn');
-const resultEl = document.getElementById('result');
-// 新增元素
-const enhanceSwitch = document.getElementById('enhanceSwitch');
-const hongzhongSetting = document.getElementById('hongzhongSetting');
-const hongzhongCountSelect = document.getElementById('hongzhongCount');
-const quemenTypeSelect = document.getElementById('quemenType');
+        // 练习模式专用：当前题目手牌（不可编辑）
+        let practiceHandCards = [];
 
-// 原有：花色切换逻辑
-colorTabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-    colorTabs.forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-    currentType = tab.dataset.type;
-    document.querySelectorAll('.num-btn').forEach(btn => {
-      btn.className = `num-btn ${currentType}`;
-    });
-  });
-});
+        // DOM 元素
+        const modeBtns = document.querySelectorAll('.mode-btn');
+        const calcInputArea = document.getElementById('calcInputArea');
+        const practiceInputArea = document.getElementById('practiceInputArea');
+        const calcActions = document.getElementById('calcActions');
+        const practiceActions = document.getElementById('practiceActions');
+        const colorTabs = document.querySelectorAll('.color-tab');
+        const numButtons = document.getElementById('numButtons');
+        const handCardsEl = document.getElementById('handCards');
+        const calcBtn = document.getElementById('calcBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const practiceClearBtn = document.getElementById('practiceClearBtn');
+        const resultEl = document.getElementById('result');
+        const enhanceSwitch = document.getElementById('enhanceSwitch');
+        const hongzhongSetting = document.getElementById('hongzhongSetting');
+        const hongzhongCountSelect = document.getElementById('hongzhongCount');
+        const quemenTypeSelect = document.getElementById('quemenType');
+        const handSizeSelect = document.getElementById('handSizeSelect');
+        const practiceRandomBtn = document.getElementById('practiceRandomBtn');
+        const showAnswerBtn = document.getElementById('showAnswerBtn');
 
-// 新增：增强模式开关逻辑
-enhanceSwitch.addEventListener('change', () => {
-  isEnhanceMode = enhanceSwitch.checked;
-  hongzhongSetting.classList.toggle('show', isEnhanceMode);
-  // 同步获取红中/缺门初始值
-  hongzhongCount = parseInt(hongzhongCountSelect.value);
-  quemenType = quemenTypeSelect.value;
-});
+        // ---------- 辅助函数 ----------
+        function typeToChinese(t) { return {wan:'万',tiao:'条',tong:'筒'}[t] || t; }
+        function cardKey(c) { return c.type + ',' + c.num; }
 
-// 新增：红中数量/缺门选择逻辑
-hongzhongCountSelect.addEventListener('change', () => {
-  hongzhongCount = parseInt(hongzhongCountSelect.value);
-});
-quemenTypeSelect.addEventListener('change', () => {
-  quemenType = quemenTypeSelect.value;
-});
-
-// 原有：数字按钮点击加牌逻辑
-numButtons.addEventListener('click', (e) => {
-  if (e.target.classList.contains('num-btn')) {
-    const num = parseInt(e.target.textContent);
-    const cnt = handCards.filter(c => c.type === currentType && c.num === num).length;
-    if (cnt >= 4) {
-      showResult(`❌ 最多4张`, 'error');
-      return;
-    }
-    handCards.push({ type: currentType, num });
-    renderHandCards();
-  }
-});
-
-// 原有：手牌渲染逻辑（新增红中展示）
-function renderHandCards() {
-  handCardsEl.innerHTML = '';
-  
-  // 1. 渲染普通手牌
-  [...handCards].sort((a, b) => {
-    if (a.type !== b.type) return a.type.localeCompare(b.type);
-    return a.num - b.num;
-  }).forEach((card, i) => {
-    const el = document.createElement('div');
-    el.className = `card ${card.type}`;
-    el.textContent = card.num;
-    el.onclick = () => {
-      handCards.splice(i, 1);
-      renderHandCards();
-    };
-    handCardsEl.appendChild(el);
-  });
-
-  // 2. 增强模式下渲染红中
-  if (isEnhanceMode && hongzhongCount > 0) {
-    for (let i = 0; i < hongzhongCount; i++) {
-      const el = document.createElement('div');
-      el.className = 'card hongzhong';
-      el.textContent = '中';
-      el.title = '红中（百搭）';
-      handCardsEl.appendChild(el);
-    }
-  }
-}
-
-// 原有：清空手牌逻辑
-clearBtn.onclick = () => {
-  handCards = [];
-  renderHandCards();
-  resultEl.textContent = '';
-};
-
-// 核心：算听牌逻辑（兼容基础/增强模式）
-calcBtn.onclick = () => {
-  const totalCards = handCards.length + (isEnhanceMode ? hongzhongCount : 0);
-  
-  // 1. 基础数量校验
-  if (![1,4,7,10,13].includes(totalCards)) {
-    showResult(`❌ 总牌数${totalCards}：必须1/4/7/10/13`, 'error');
-    return;
-  }
-
-  // 2. 基础花色校验（增强模式下自动适配缺门）
-  let cardTypes = new Set(handCards.map(c => c.type));
-  if (isEnhanceMode && quemenType !== 'none') {
-    cardTypes.delete(quemenType); // 排除缺门花色
-  }
-  if (cardTypes.size > 2) {
-    showResult(`❌ 有效花色${cardTypes.size}门：最多2门`, 'error');
-    return;
-  }
-
-  // 3. 计算听牌（区分基础/增强模式）
-  const ting = isEnhanceMode ? getTingWithHongzhong() : getTingBasic();
-  
-  if (ting.length === 0) {
-    showResult(`❌ ${totalCards}张：不听`, 'error');
-  } else {
-    const text = ting.map(p => `${p.num}${{wan:'万',tiao:'条',tong:'筒'}[p.type]}`).join('、');
-    showResult(`✅ ${totalCards}张：听 ${text}`, 'success');
-  }
-};
-
-// 原有：基础模式听牌算法
-function getTingBasic() {
-  const all = [];
-  for (const t of ['wan','tiao','tong']) {
-    for (let n=1;n<=9;n++) all.push({type:t, num:n});
-  }
-  const res = [];
-  for (const p of all) {
-    const cnt = handCards.filter(c => c.type === p.type && c.num === p.num).length;
-    if (cnt >=4) continue;
-    if (isHuBasic([...handCards, p])) res.push(p);
-  }
-  return res;
-}
-
-// 新增：血流红中模式听牌算法（红中百搭）
-function getTingWithHongzhong() {
-  const all = [];
-  // 排除缺门花色
-  const validTypes = ['wan','tiao','tong'].filter(t => t !== quemenType);
-  for (const t of validTypes) {
-    for (let n=1;n<=9;n++) all.push({type:t, num:n});
-  }
-  
-  const res = [];
-  for (const p of all) {
-    // 普通牌最多4张限制
-    const cnt = handCards.filter(c => c.type === p.type && c.num === p.num).length;
-    if (cnt >=4) continue;
-
-    // 组合手牌+待选牌+红中
-    const tempHand = [...handCards, p];
-    if (isHuWithHongzhong(tempHand, hongzhongCount)) {
-      res.push(p);
-    }
-  }
-  return res;
-}
-
-// 原有：基础模式胡牌判定
-function isHuBasic(cards) {
-  const m = {};
-  for (const {type, num} of cards) {
-    const k = type + ',' + num;
-    m[k] = (m[k] || 0) + 1;
-  }
-  const keys = Object.keys(m);
-  for (const eye of keys) {
-    if (m[eye] < 2) continue;
-    const cp = { ...m };
-    cp[eye] -= 2;
-    if (cp[eye] === 0) delete cp[eye];
-    if (checkGroup(cp)) return true;
-  }
-  return false;
-}
-
-// 新增：血流红中模式胡牌判定（红中百搭）
-function isHuWithHongzhong(cards, hzCount) {
-  // 递归尝试用红中替代任意牌，直到用完红中或胡牌
-  function tryHu(tempCards, remainHz) {
-    // 无红中时按基础规则判定
-    if (remainHz === 0) {
-      return isHuBasic(tempCards);
-    }
-
-    // 有红中时，尝试替代每一种可能的牌
-    const validTypes = ['wan','tiao','tong'].filter(t => t !== quemenType);
-    for (const t of validTypes) {
-      for (let n=1;n<=9;n++) {
-        // 该牌最多4张限制
-        const cnt = tempCards.filter(c => c.type === t && c.num === n).length;
-        if (cnt >=4) continue;
-        
-        // 加一张替代牌，减少一个红中
-        const newCards = [...tempCards, {type:t, num:n}];
-        if (tryHu(newCards, remainHz - 1)) {
-          return true;
+        // 更新数字按钮颜色
+        function updateNumBtnColor() {
+            document.querySelectorAll('.num-btn').forEach(btn => {
+                btn.className = `num-btn ${currentType}`;
+            });
         }
-      }
-    }
-    return false;
-  }
 
-  return tryHu(cards, hzCount);
-}
+        // 渲染手牌（根据当前模式展示对应手牌）
+        function renderHandCards() {
+            handCardsEl.innerHTML = '';
+            const cardsToShow = (currentMode === 'calc') ? handCards : practiceHandCards;
+            
+            const sorted = [...cardsToShow].sort((a,b) => {
+                if(a.type !== b.type) return a.type.localeCompare(b.type);
+                return a.num - b.num;
+            });
+            
+            sorted.forEach((card, idx) => {
+                const el = document.createElement('div');
+                el.className = `card ${card.type}`;
+                el.textContent = card.num;
+                // 计算器模式可点击删除；练习模式不可删除
+                if (currentMode === 'calc') {
+                    el.style.cursor = 'pointer';
+                    el.onclick = () => {
+                        // 找到原始数组中的位置（考虑排序）
+                        const realIdx = handCards.findIndex(c => c.type===card.type && c.num===card.num);
+                        if(realIdx !== -1) handCards.splice(realIdx, 1);
+                        renderHandCards();
+                        resultEl.innerHTML = '';
+                    };
+                } else {
+                    el.style.cursor = 'default';
+                }
+                handCardsEl.appendChild(el);
+            });
 
-// 原有：刻子/顺子校验逻辑
-function checkGroup(g) {
-  const m = { ...g };
-  const keys = Object.keys(m).sort();
-  for (const k of keys) {
-    if (!m[k]) continue;
-    const [t, nStr] = k.split(',');
-    const n = parseInt(nStr);
-    while (m[k] >= 3) {
-      m[k] -= 3;
-      if (m[k] === 0) delete m[k];
-    }
-    while (m[k] >= 1) {
-      const a = t + ',' + (n+1);
-      const b = t + ',' + (n+2);
-      if (!m[a] || !m[b]) break;
-      m[k]--; m[a]--; m[b]--;
-      if (m[k] === 0) delete m[k];
-      if (m[a] === 0) delete m[a];
-      if (m[b] === 0) delete m[b];
-    }
-  }
-  return Object.keys(m).length === 0;
-}
+            // 红中展示（不可删除）
+            if(isEnhanceMode && hongzhongCount > 0) {
+                for(let i=0; i<hongzhongCount; i++) {
+                    const el = document.createElement('div');
+                    el.className = 'card hongzhong';
+                    el.textContent = '中';
+                    el.title = '红中（百搭）';
+                    handCardsEl.appendChild(el);
+                }
+            }
+        }
 
-// 原有：基础模式胡牌判定（内部调用）
-function isHuBasic(cards) {
-  const m = {};
-  for (const {type, num} of cards) {
-    const k = type + ',' + num;
-    m[k] = (m[k] || 0) + 1;
-  }
-  const keys = Object.keys(m);
-  for (const eye of keys) {
-    if (m[eye] < 2) continue;
-    const cp = { ...m };
-    cp[eye] -= 2;
-    if (cp[eye] === 0) delete cp[eye];
-    if (checkGroup(cp)) return true;
-  }
-  return false;
-}
+        // 刷新UI模式
+        function setMode(mode) {
+            currentMode = mode;
+            modeBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            
+            if (mode === 'calc') {
+                calcInputArea.classList.remove('hidden');
+                practiceInputArea.classList.add('hidden');
+                calcActions.classList.remove('hidden');
+                practiceActions.classList.add('hidden');
+                // 清空练习手牌显示，恢复计算器手牌
+            } else {
+                calcInputArea.classList.add('hidden');
+                practiceInputArea.classList.remove('hidden');
+                calcActions.classList.add('hidden');
+                practiceActions.classList.remove('hidden');
+                // 如果练习手牌为空，自动生成一副默认13张
+                if (practiceHandCards.length === 0) {
+                    generatePracticeHand();
+                }
+            }
+            renderHandCards();
+            resultEl.innerHTML = '';
+        }
 
-// 原有：结果提示逻辑
-function showResult(text, cls) {
-  resultEl.className = `result ${cls}`;
-  resultEl.textContent = text;
-}
+        // 显示结果
+        function showResult(html, cls) {
+            resultEl.className = `result ${cls}`;
+            resultEl.innerHTML = html;
+        }
 
-// 初始化
-renderHandCards();
+        // ---------- 胡牌判定算法（与之前相同）----------
+        function isHuBasic(cards) {
+            const m = {};
+            cards.forEach(c => { const k = cardKey(c); m[k] = (m[k]||0)+1; });
+            const keys = Object.keys(m);
+            for(const eye of keys) {
+                if(m[eye] < 2) continue;
+                const cp = {...m};
+                cp[eye] -= 2;
+                if(cp[eye] === 0) delete cp[eye];
+                if(checkGroup(cp)) return true;
+            }
+            return false;
+        }
+
+        function checkGroup(g) {
+            const m = {...g};
+            const keys = Object.keys(m).sort();
+            for(const k of keys) {
+                if(!m[k]) continue;
+                const [t, nStr] = k.split(',');
+                const n = parseInt(nStr);
+                while(m[k] >= 3) {
+                    m[k] -= 3;
+                    if(m[k]===0) delete m[k];
+                }
+                while(m[k] >= 1) {
+                    const a = t+','+(n+1), b = t+','+(n+2);
+                    if(!m[a] || !m[b]) break;
+                    m[k]--; m[a]--; m[b]--;
+                    if(m[k]===0) delete m[k];
+                    if(m[a]===0) delete m[a];
+                    if(m[b]===0) delete m[b];
+                }
+            }
+            return Object.keys(m).length === 0;
+        }
+
+        function isHuWithHongzhong(cards, hzCount) {
+            function tryHu(tempCards, remainHz) {
+                if(remainHz === 0) return isHuBasic(tempCards);
+                const validTypes = ['wan','tiao','tong'].filter(t => t !== quemenType);
+                for(const t of validTypes) {
+                    for(let n=1; n<=9; n++) {
+                        const cnt = tempCards.filter(c => c.type===t && c.num===n).length;
+                        if(cnt >= 4) continue;
+                        const newCards = [...tempCards, {type:t, num:n}];
+                        if(tryHu(newCards, remainHz-1)) return true;
+                    }
+                }
+                return false;
+            }
+            return tryHu(cards, hzCount);
+        }
+
+        // 计算听牌（基于给定的手牌数组）
+        // 改进：听牌计算中加入花色数量校验
+        function getTingList(cards) {
+            // 先校验手牌花色数量
+            const handTypes = new Set(cards.map(c => c.type));
+            let effectiveTypes = handTypes;
+            if (isEnhanceMode) {
+                if (quemenType !== 'none') {
+                    // 红中模式下，缺门花色不应出现在手牌中（生成时已限制，但以防万一）
+                    if (handTypes.has(quemenType)) {
+                        // 如果出现，直接返回空听牌
+                        return [];
+                    }
+                }
+            } else {
+                // 普通模式：手牌花色不能超过2门
+                if (handTypes.size > 2) {
+                    return [];
+                }
+            }
+
+            // 确定可以听的牌的花色范围
+            let allowedTypes;
+            if (isEnhanceMode) {
+                allowedTypes = ['wan','tiao','tong'].filter(t => t !== quemenType);
+            } else {
+                // 普通模式：听牌只能从手牌已有的花色中产生（如果手牌只有一门，听牌也是那一门；如果两门，两门都可能）
+                allowedTypes = [...handTypes];
+            }
+
+            const all = [];
+            allowedTypes.forEach(t => { for (let n = 1; n <= 9; n++) all.push({ type: t, num: n }); });
+
+            return all.filter(p => {
+                const cnt = cards.filter(c => c.type === p.type && c.num === p.num).length;
+                if (cnt >= 4) return false;
+                const testCards = [...cards, p];
+                return isEnhanceMode ? isHuWithHongzhong(testCards, hongzhongCount) : isHuBasic(testCards);
+            });
+        }
+
+        // ---------- 计算器模式功能 ----------
+        function calcCompute() {
+            const total = handCards.length + (isEnhanceMode ? hongzhongCount : 0);
+            if(![1,4,7,10,13].includes(total)) {
+                showResult(`❌ 总牌数${total}：必须1/4/7/10/13`, 'error');
+                return;
+            }
+            let cardTypes = new Set(handCards.map(c=>c.type));
+            if(isEnhanceMode && quemenType!=='none') cardTypes.delete(quemenType);
+            if(cardTypes.size > 2) {
+                showResult(`❌ 有效花色${cardTypes.size}门：最多2门`, 'error');
+                return;
+            }
+
+            const ting = getTingList(handCards);
+            if(ting.length === 0) {
+                showResult(`❌ ${total}张：不听`, 'error');
+            } else {
+                const text = ting.map(p => `${p.num}${typeToChinese(p.type)}`).join('、');
+                showResult(`✅ ${total}张：听 ${text}`, 'success');
+            }
+        }
+
+        
+        // ---------- 练习模式功能（改进版：强制有听牌）----------
+        // 改进：生成手牌时强制花色合规
+        function generatePracticeHand() {
+            const targetTotal = parseInt(handSizeSelect.value);
+            const hz = isEnhanceMode ? hongzhongCount : 0;
+            const normalCount = targetTotal - hz;
+            
+            // 确定有效花色集合
+            let validTypes;
+            if (isEnhanceMode) {
+                // 血流红中：排除缺门
+                validTypes = ['wan','tiao','tong'].filter(t => t !== quemenType);
+            } else {
+                // 普通模式：随机选1~2门花色（不能三门）
+                const allTypes = ['wan','tiao','tong'];
+                const typeCount = Math.random() < 0.5 ? 1 : 2; // 一半概率一门，一半两门
+                const shuffled = [...allTypes].sort(() => Math.random() - 0.5);
+                validTypes = shuffled.slice(0, typeCount);
+            }
+
+            if (validTypes.length === 0) {
+                alert('请设置有效的缺门或花色选择');
+                return;
+            }
+
+            let maxAttempts = 200;
+            let foundValidHand = false;
+            let generatedCards = [];
+
+            while (maxAttempts-- > 0) {
+                let newCards = [];
+                let attempts = 0;
+                while (newCards.length < normalCount && attempts < 500) {
+                    const t = validTypes[Math.floor(Math.random() * validTypes.length)];
+                    const n = Math.floor(Math.random() * 9) + 1;
+                    const cnt = newCards.filter(c => c.type === t && c.num === n).length;
+                    if (cnt < 4) newCards.push({ type: t, num: n });
+                    attempts++;
+                }
+                if (newCards.length !== normalCount) continue;
+
+                // 检查听牌（听牌函数内部会校验花色数量）
+                const ting = getTingList(newCards);
+                if (ting.length > 0) {
+                    generatedCards = newCards;
+                    foundValidHand = true;
+                    break;
+                }
+            }
+
+            if (!foundValidHand) {
+                alert('暂时无法生成可听牌的练习手牌，请调整设置后再试。');
+                // 兜底
+                let newCards = [];
+                while (newCards.length < normalCount) {
+                    const t = validTypes[Math.floor(Math.random() * validTypes.length)];
+                    const n = Math.floor(Math.random() * 9) + 1;
+                    const cnt = newCards.filter(c => c.type === t && c.num === n).length;
+                    if (cnt < 4) newCards.push({ type: t, num: n });
+                }
+                generatedCards = newCards;
+            }
+
+            practiceHandCards = generatedCards;
+            renderHandCards();
+            resultEl.innerHTML = '';
+        }
+
+        function showPracticeAnswer() {
+            const total = practiceHandCards.length + (isEnhanceMode ? hongzhongCount : 0);
+            // 检查是否已胡牌（牌数14？这里练习模式手牌数为1/4/7/10/13，不会直接胡，但以防万一）
+            if (total === 14) {
+                const hu = isEnhanceMode ? isHuWithHongzhong(practiceHandCards, hongzhongCount) : isHuBasic(practiceHandCards);
+                if (hu) {
+                    showResult(`🎉 当前手牌已胡牌！`, 'info');
+                    return;
+                }
+            }
+            
+            const ting = getTingList(practiceHandCards);
+            if (ting.length === 0) {
+                showResult(`❌ ${total}张：不听`, 'error');
+            } else {
+                const text = ting.map(p => `${p.num}${typeToChinese(p.type)}`).join('、');
+                showResult(`✅ ${total}张：听 ${text}`, 'success');
+            }
+        }
+
+        // ---------- 事件绑定 ----------
+        // 模式切换
+        modeBtns.forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.mode)));
+
+        // 计算器：花色切换
+        colorTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                colorTabs.forEach(t=>t.classList.remove('active'));
+                tab.classList.add('active');
+                currentType = tab.dataset.type;
+                updateNumBtnColor();
+            });
+        });
+
+        // 计算器：数字加牌
+        numButtons.addEventListener('click', e => {
+            if(!e.target.classList.contains('num-btn')) return;
+            const num = parseInt(e.target.textContent);
+            const cnt = handCards.filter(c => c.type===currentType && c.num===num).length;
+            if(cnt >=4) { showResult('❌ 最多4张', 'error'); return; }
+            handCards.push({type: currentType, num});
+            renderHandCards();
+            resultEl.innerHTML = '';
+        });
+
+        // 增强模式开关
+        enhanceSwitch.addEventListener('change', () => {
+            isEnhanceMode = enhanceSwitch.checked;
+            hongzhongSetting.classList.toggle('show', isEnhanceMode);
+            hongzhongCount = parseInt(hongzhongCountSelect.value);
+            quemenType = quemenTypeSelect.value;
+            // 切换模式时重新渲染红中显示
+            renderHandCards();
+        });
+
+        hongzhongCountSelect.addEventListener('change', () => {
+            hongzhongCount = parseInt(hongzhongCountSelect.value);
+            renderHandCards();
+        });
+        quemenTypeSelect.addEventListener('change', () => {
+            quemenType = quemenTypeSelect.value;
+            renderHandCards();
+        });
+
+        // 计算器按钮
+        calcBtn.onclick = calcCompute;
+        clearBtn.onclick = () => {
+            handCards = [];
+            renderHandCards();
+            resultEl.innerHTML = '';
+        };
+
+        // 练习模式按钮
+        practiceRandomBtn.onclick = generatePracticeHand;
+        showAnswerBtn.onclick = showPracticeAnswer;
+        practiceClearBtn.onclick = () => {
+            practiceHandCards = [];
+            renderHandCards();
+            resultEl.innerHTML = '';
+        };
+        
+        // 练习模式切换张数时，可选择重新生成
+        handSizeSelect.addEventListener('change', generatePracticeHand);
+
+        // 初始化
+        updateNumBtnColor();
+        setMode('calc');
+        renderHandCards();
+    })();
 </script>
 </body>
 </html>

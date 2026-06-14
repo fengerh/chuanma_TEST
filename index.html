@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>川麻听牌 · 计算+练习 v20260413.1505</title>
+    <title>川麻听牌·计算+练习 v20260614.1030</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { background: #f5f5f5; font-family: "Microsoft YaHei", sans-serif; padding: 15px; }
@@ -347,19 +347,67 @@
         // ---------- 计算器模式功能 ----------
         function calcCompute() {
             const total = handCards.length + (isEnhanceMode ? hongzhongCount : 0);
-            if(![1,4,7,10,13].includes(total)) {
-                showResult(`❌ 总牌数${total}：必须1/4/7/10/13`, 'error');
+            const allowedSizes = [1, 4, 7, 10, 13];
+            const extraSizes = [2, 5, 8, 11, 14]; // 摸进一张后的状态
+
+            // 总牌数校验
+            if (!allowedSizes.includes(total) && !extraSizes.includes(total)) {
+                showResult(`❌ 总牌数${total}：必须为 1/4/7/10/13 或 2/5/8/11/14`, 'error');
                 return;
             }
-            let cardTypes = new Set(handCards.map(c=>c.type));
-            if(isEnhanceMode && quemenType!=='none') cardTypes.delete(quemenType);
-            if(cardTypes.size > 2) {
+
+            // 花色校验
+            let cardTypes = new Set(handCards.map(c => c.type));
+            if (isEnhanceMode && quemenType !== 'none') cardTypes.delete(quemenType);
+            if (cardTypes.size > 2) {
                 showResult(`❌ 有效花色${cardTypes.size}门：最多2门`, 'error');
                 return;
             }
 
+            // ========== 摸进一张后的处理 (2/5/8/11/14) ==========
+            if (extraSizes.includes(total)) {
+                // 1. 先判断自摸
+                const ziMo = isEnhanceMode
+                    ? isHuWithHongzhong(handCards, hongzhongCount)
+                    : isHuBasic(handCards);
+                if (ziMo) {
+                    showResult(`🎉 自摸！胡了`, 'success');
+                    return;
+                }
+
+                // 2. 遍历打出每一张普通牌（红中不能打，只遍历 handCards）
+                const seen = new Set();        // 去重：相同牌面只算一次
+                const results = [];
+
+                for (let i = 0; i < handCards.length; i++) {
+                    const discard = handCards[i];
+                    const key = cardKey(discard);
+                    if (seen.has(key)) continue;
+                    seen.add(key);
+
+                    // 构造打出后的手牌
+                    const newHand = handCards.filter((_, idx) => idx !== i);
+                    const tingList = getTingList(newHand);
+
+                    const desc = `${discard.num}${typeToChinese(discard.type)}`;
+                    if (tingList.length === 0) {
+                        results.push(`打 <b>${desc}</b> 不听`);
+                    } else {
+                        const tingStr = tingList.map(p => `${p.num}${typeToChinese(p.type)}`).join('、');
+                        results.push(`打 <b>${desc}</b> 听 ${tingStr}`);
+                    }
+                }
+
+                const html = results.length > 0
+                    ? `💡 摸进后（${total}张）：<br><div style="text-align:left; display:inline-block;">${results.join('<br>')}</div>`
+                    : `❌ 无牌可打`;
+                showResult(html, results.length > 0 ? 'info' : 'error');
+                return;
+            }
+
+            // ========== 普通听牌 (1/4/7/10/13) ==========
             const ting = getTingList(handCards);
-            if(ting.length === 0) {
+            if (ting.length === 0) {
                 showResult(`❌ ${total}张：不听`, 'error');
             } else {
                 const text = ting.map(p => `${p.num}${typeToChinese(p.type)}`).join('、');

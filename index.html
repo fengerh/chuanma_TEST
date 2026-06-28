@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>川麻听牌·计算+练习 v20260628.2210</title>
+    <title>川麻听牌·计算+练习 v20260628.2300</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
         body { background: #f5f5f5; font-family: "Microsoft YaHei", sans-serif; padding: 15px; }
@@ -129,16 +129,6 @@
 <script>
     (function(){
         "use strict";
-
-        // 阻止 iOS 双击缩放
-        let lastTouchEnd = 0;
-        document.addEventListener('touchend', function(e) {
-            const now = Date.now();
-            if (now - lastTouchEnd <= 300) {
-                e.preventDefault();
-            }
-            lastTouchEnd = now;
-        }, false);
 
         // ---------- 全局状态 ----------
         let currentMode = 'calc';            // 'calc' 或 'practice'

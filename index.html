@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>川麻听牌·计算+练习 v20260913.0900</title>
+    <title>川麻听牌·计算+练习 v20260913.1300</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; touch-action: manipulation; }
         body { background: #f5f5f5; font-family: "Microsoft YaHei", sans-serif; padding: 15px; }
@@ -40,6 +40,14 @@
         .random-btn { background: #8e44ad; color: white; }
         .answer-btn { background: #2980b9; color: white; }
         .result { padding: 12px; border-radius: 8px; text-align: center; font-size: 15px; font-weight: bold; }
+        /* 结果表格：空列自动隐藏，窄屏下只增高不横向溢出 */
+        .result-title { font-size: 14px; font-weight: bold; margin-bottom: 8px; }
+        .result-table { width: 100%; border-collapse: collapse; font-size: 13px; font-weight: normal; }
+        .result-table th, .result-table td { border: 1px solid rgba(0,0,0,0.14); padding: 6px 4px; }
+        .result-table th { background: rgba(255,255,255,0.62); font-size: 12px; font-weight: bold; text-align: center; white-space: nowrap; }
+        .result-table td.row-head { font-weight: bold; text-align: center; white-space: nowrap; }
+        .result-table td.tile-cell { text-align: center; line-height: 1.55; word-break: break-all; }
+        .result-table td.tile-empty { text-align: center; color: #8a8a8a; }
         .success { background: #d4edda; color: #155724; }
         .error { background: #f8d7da; color: #721c24; }
         .info { background: #d1ecf1; color: #0c5460; }
@@ -248,10 +256,54 @@
             resultEl.innerHTML = html;
         }
 
+        // ---------- 结果表格渲染 ----------
+        // 牌型列固定顺序：平胡 → 碰碰胡 → 七小对；某列在所有行都为空则不渲染该列
+        const TING_COLUMNS = [
+            { key: 'ping',  title: '平胡' },
+            { key: 'peng',  title: '碰碰胡' },
+            { key: 'qidui', title: '七小对' }
+        ];
+
+        // 把听口列表按牌型拆成三列，七小对列额外标注子型名
+        function splitTingByType(list) {
+            const cols = { ping: [], peng: [], qidui: [] };
+            list.forEach(p => {
+                const name = `${p.num}${typeToChinese(p.type)}`;
+                if(p.ping) cols.ping.push(name);
+                if(p.peng) cols.peng.push(name);
+                if(p.qidui) cols.qidui.push(`${name}（${p.qidui}）`);
+            });
+            return cols;
+        }
+
+        // 生成结果表格；全部牌型列均为空时返回 null，由调用方退化为文字
+        function renderResultTable(opts) {
+            const rows = opts.rows || [];
+            const cols = TING_COLUMNS.filter(c => rows.some(r => (r[c.key] || []).length > 0));
+            if(cols.length === 0) return null;
+
+            const head = `<tr><th>${opts.headLabel}</th>${cols.map(c => `<th>${c.title}</th>`).join('')}</tr>`;
+            const body = rows.map(r => {
+                const cells = cols.map(c => {
+                    const txt = (r[c.key] || []).join('、');
+                    return txt ? `<td class="tile-cell">${txt}</td>` : `<td class="tile-empty">—</td>`;
+                }).join('');
+                return `<tr><td class="row-head">${r.head}</td>${cells}</tr>`;
+            }).join('');
+
+            const title = opts.title ? `<div class="result-title">${opts.title}</div>` : '';
+            return `${title}<table class="result-table"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+        }
+
         // ---------- 胡牌判定算法（与之前相同）----------
         function isHuBasic(cards) {
             const m = {};
             cards.forEach(c => { const k = cardKey(c); m[k] = (m[k]||0)+1; });
+            return isHuBasicCounts(m);
+        }
+
+        // 与 isHuBasic 语义相同，直接接受「牌面 -> 张数」计数表
+        function isHuBasicCounts(m) {
             const keys = Object.keys(m);
             for(const eye of keys) {
                 if(m[eye] < 2) continue;
@@ -286,21 +338,40 @@
             return Object.keys(m).length === 0;
         }
 
+        // 红中百搭：把 h 张红中当作任意非缺门花色的牌，判断能否凑成标准型
+        // 采用计数表 + 非降序枚举，同一多重集只枚举一次：27^h -> C(27+h-1, h)
         function isHuWithHongzhong(cards, hzCount) {
-            function tryHu(tempCards, remainHz) {
-                if(remainHz === 0) return isHuBasic(tempCards);
-                const validTypes = ['wan','tiao','tong'].filter(t => t !== quemenType);
-                for(const t of validTypes) {
-                    for(let n=1; n<=9; n++) {
-                        const cnt = tempCards.filter(c => c.type===t && c.num===n).length;
-                        if(cnt >= 4) continue;
-                        const newCards = [...tempCards, {type:t, num:n}];
-                        if(tryHu(newCards, remainHz-1)) return true;
-                    }
+            if(hzCount <= 0) return isHuBasic(cards);
+
+            const m = {};
+            cards.forEach(c => { const k = cardKey(c); m[k] = (m[k]||0)+1; });
+
+            const validTypes = ['wan','tiao','tong'].filter(t => t !== quemenType);
+            const tiles = [];
+            validTypes.forEach(t => { for(let n = 1; n <= 9; n++) tiles.push(t + ',' + n); });
+
+            // 后缀容量剪枝：从第 i 个牌面起最多还能补多少张（原状态的容量是后续节点容量的上界）
+            const cap = new Array(tiles.length + 1).fill(0);
+            for(let i = tiles.length - 1; i >= 0; i--) {
+                cap[i] = cap[i + 1] + (4 - (m[tiles[i]] || 0));
+            }
+
+            function dfs(idx, remain) {
+                if(remain === 0) return isHuBasicCounts(m);
+                if(cap[idx] < remain) return false;
+                for(let i = idx; i < tiles.length; i++) {
+                    const k = tiles[i];
+                    if((m[k] || 0) >= 4) continue;
+                    m[k] = (m[k] || 0) + 1;
+                    const hit = dfs(i, remain - 1);   // 仍从 i 起，允许同一牌面被补多次
+                    m[k] -= 1;
+                    if(m[k] === 0) delete m[k];
+                    if(hit) return true;
                 }
                 return false;
             }
-            return tryHu(cards, hzCount);
+
+            return dfs(0, hzCount);
         }
 
         // ---------- 七小对族判定（新增）----------
@@ -363,24 +434,85 @@
             return { label: qiXiaoDuiLabel(qing, gen), qing: qing, gen: gen };
         }
 
-        // 统一胡牌入口：先判对子型（七小对族），未命中再回落标准型
-        // 返回 { hu: boolean, label: string }，label 为空串表示普通标准型
-        function analyzeHu(cards, hzCount) {
-            const hz = hzCount || 0;
-            if(cards.length + hz === 14) {
-                const qidui = checkQiXiaoDui(cards, hz);
-                if(qidui) return { hu: true, label: qidui.label };
+        // ---------- 牌型分类：平胡 / 碰碰胡 ----------
+        // 碰碰胡 = 1 个将 + 全部刻子（无顺子）。将 2 张，其余牌面各 3 张，
+        // 所以「减掉将之后每个牌面计数都能被 3 整除」即为碰碰胡。
+        // 该判定同样适配工具既有的小张数胡牌口径（如 5 张 = 111 + 22）。
+        function isPengPengHuBasic(cards) {
+            const m = {};
+            cards.forEach(c => { const k = cardKey(c); m[k] = (m[k]||0)+1; });
+            const keys = Object.keys(m);
+            for(const eye of keys) {
+                if(m[eye] < 2) continue;
+                let ok = true;
+                for(const k of keys) {
+                    if((m[k] - (k === eye ? 2 : 0)) % 3 !== 0) { ok = false; break; }
+                }
+                if(ok) return true;
             }
-            const hu = hz > 0 ? isHuWithHongzhong(cards, hz) : isHuBasic(cards);
-            return { hu: hu, label: '' };
+            return false;
         }
 
-        // 统一听牌文案：牌面 + 可选牌型标注
-        function formatTing(list) {
-            return list.map(p => {
-                const name = `${p.num}${typeToChinese(p.type)}`;
-                return p.label ? `${name}（${p.label}）` : name;
-            }).join('、');
+        // 碰碰胡 + 红中百搭：把红中补到牌面上使最终计数落在 {2, 3}，
+        // 2 为将（全局唯一），3 为刻子；剩余红中只可能是 0 / 3（自凑刻子）/ 2（自凑将）
+        function isPengPengHuWithHz(cards, hzCount) {
+            const m = {};
+            cards.forEach(c => { const k = cardKey(c); m[k] = (m[k]||0)+1; });
+            const keys = Object.keys(m);
+
+            let ok = false;
+            (function dfs(i, remain, eyeUsed) {
+                if(ok) return;
+                if(i === keys.length) {
+                    if(remain === 0 || remain === 3) ok = true;
+                    else if(remain === 2 && !eyeUsed) ok = true;
+                    return;
+                }
+                const cnt = m[keys[i]];
+                const maxW = Math.min(remain, 4 - cnt);
+                for(let w = 0; w <= maxW; w++) {
+                    const fin = cnt + w;
+                    if(fin !== 2 && fin !== 3) continue;
+                    const isEye = fin === 2;
+                    if(isEye && eyeUsed) continue;
+                    dfs(i + 1, remain - w, eyeUsed || isEye);
+                    if(ok) return;
+                }
+            })(0, hzCount, false);
+
+            return ok;
+        }
+
+        function isPengPengHu(cards, hzCount) {
+            const hz = hzCount || 0;
+            return hz > 0 ? isPengPengHuWithHz(cards, hz) : isPengPengHuBasic(cards);
+        }
+
+        // 统一分析入口：返回 { hu, ping, peng, qidui }
+        // - qidui: 七小对族子型名，空串表示不成立（与标准型互相独立，可同时成立）
+        // - peng / ping 互斥：碰碰胡优先；碰碰胡必然是合法标准型，故成立即短路
+        function analyzeHuDetail(cards, hzCount) {
+            const hz = hzCount || 0;
+
+            let qidui = '';
+            if(cards.length + hz === 14) {
+                const q = checkQiXiaoDui(cards, hz);
+                if(q) qidui = q.label;
+            }
+
+            const peng = isPengPengHu(cards, hz);
+            const ping = peng ? false : (hz > 0 ? isHuWithHongzhong(cards, hz) : isHuBasic(cards));
+
+            return { hu: peng || ping || !!qidui, ping: ping, peng: peng, qidui: qidui };
+        }
+
+        // 手牌本身的牌型名集合（用于自摸提示）
+        function handTypeNames(detail) {
+            const names = [];
+            if(detail.peng) names.push('碰碰胡');
+            if(detail.ping) names.push('平胡');
+            if(detail.qidui) names.push(detail.qidui);
+            return names;
         }
 
         // 计算听牌（基于给定的手牌数组）
@@ -416,14 +548,14 @@
             const all = [];
             allowedTypes.forEach(t => { for (let n = 1; n <= 9; n++) all.push({ type: t, num: n }); });
 
-            // 返回元素带牌型标注：{ type, num, label }
+            // 返回元素带牌型分类：{ type, num, ping, peng, qidui }
             const hz = getHzCount();
             const tings = [];
             all.forEach(p => {
                 const cnt = cards.filter(c => c.type === p.type && c.num === p.num).length;
                 if (cnt >= 4) return;
-                const res = analyzeHu([...cards, p], hz);
-                if (res.hu) tings.push({ type: p.type, num: p.num, label: res.label });
+                const res = analyzeHuDetail([...cards, p], hz);
+                if (res.hu) tings.push({ type: p.type, num: p.num, ping: res.ping, peng: res.peng, qidui: res.qidui });
             });
             return tings;
         }
@@ -451,15 +583,16 @@
             // ========== 摸进一张后的处理 (2/5/8/11/14) ==========
             if (extraSizes.includes(total)) {
                 // 1. 先判断自摸
-                const ziMo = analyzeHu(handCards, getHzCount());
+                const ziMo = analyzeHuDetail(handCards, getHzCount());
                 if (ziMo.hu) {
-                    showResult(ziMo.label ? `🎉 自摸！${ziMo.label}` : `🎉 自摸！胡了`, 'success');
+                    const names = handTypeNames(ziMo);
+                    showResult(names.length ? `🎉 自摸！${names.join(' / ')}` : `🎉 自摸！胡了`, 'success');
                     return;
                 }
 
                 // 2. 遍历打出每一张普通牌（红中不能打，只遍历 handCards）
                 const seen = new Set();        // 去重：相同牌面只算一次
-                const results = [];
+                const rows = [];
 
                 for (let i = 0; i < handCards.length; i++) {
                     const discard = handCards[i];
@@ -471,18 +604,27 @@
                     const newHand = handCards.filter((_, idx) => idx !== i);
                     const tingList = getTingList(newHand);
 
-                    const desc = `${discard.num}${typeToChinese(discard.type)}`;
-                    if (tingList.length === 0) {
-                        results.push(`打 <b>${desc}</b>， 不听`);
-                    } else {
-                        results.push(`打 <b>${desc}</b>， 听 ${formatTing(tingList)}`);
-                    }
+                    rows.push(Object.assign(
+                        { head: `打 ${discard.num}${typeToChinese(discard.type)}` },
+                        splitTingByType(tingList)
+                    ));
                 }
 
-                const html = results.length > 0
-                    ? `💡 摸进后（${total}张）：<br><div style="text-align:left; display:inline-block;">${results.join('<br>')}</div>`
-                    : `❌ 无牌可打`;
-                showResult(html, results.length > 0 ? 'info' : 'error');
+                if (rows.length === 0) {
+                    showResult('❌ 无牌可打', 'error');
+                    return;
+                }
+
+                const tableHtml = renderResultTable({
+                    title: `💡 摸进后（${total}张）→ 打后 ${total - 1}张`,
+                    headLabel: '打出',
+                    rows: rows
+                });
+                if (tableHtml) {
+                    showResult(tableHtml, 'info');
+                } else {
+                    showResult(`💡 摸进后（${total}张）→ 打后 ${total - 1}张：各打法均不听`, 'info');
+                }
                 return;
             }
 
@@ -490,9 +632,12 @@
             const ting = getTingList(handCards);
             if (ting.length === 0) {
                 showResult(`❌ ${total}张：不听`, 'error');
-            } else {
-                showResult(`✅ ${total}张：听 ${formatTing(ting)}`, 'success');
+                return;
             }
+            showResult(renderResultTable({
+                headLabel: '张数',
+                rows: [Object.assign({ head: `${total}张` }, splitTingByType(ting))]
+            }), 'success');
         }
 
         
@@ -568,9 +713,10 @@
             const total = practiceHandCards.length + getHzCount();
             // 检查是否已胡牌（牌数14？这里练习模式手牌数为1/4/7/10/13，不会直接胡，但以防万一）
             if (total === 14) {
-                const hu = analyzeHu(practiceHandCards, getHzCount());
+                const hu = analyzeHuDetail(practiceHandCards, getHzCount());
                 if (hu.hu) {
-                    showResult(hu.label ? `🎉 当前手牌已胡牌！${hu.label}` : `🎉 当前手牌已胡牌！`, 'info');
+                    const names = handTypeNames(hu);
+                    showResult(names.length ? `🎉 当前手牌已胡牌！${names.join(' / ')}` : `🎉 当前手牌已胡牌！`, 'info');
                     return;
                 }
             }
@@ -578,9 +724,12 @@
             const ting = getTingList(practiceHandCards);
             if (ting.length === 0) {
                 showResult(`❌ ${total}张：不听`, 'error');
-            } else {
-                showResult(`✅ ${total}张：听 ${formatTing(ting)}`, 'success');
+                return;
             }
+            showResult(renderResultTable({
+                headLabel: '张数',
+                rows: [Object.assign({ head: `${total}张` }, splitTingByType(ting))]
+            }), 'success');
         }
 
         // ---------- 事件绑定 ----------
